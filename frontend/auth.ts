@@ -1,9 +1,11 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { authConfig } from "./auth.config";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  ...authConfig,
   providers: [
     Credentials({
       credentials: {
@@ -41,32 +43,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-
-  session: {
-    strategy: "jwt",
-    maxAge: 8 * 60 * 60, // 8 horas
-  },
-
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.role = user.role;
-        token.docente_id = user.docente_id;
-        token.access_token = user.access_token;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      session.user.role = token.role as string;
-      session.user.docente_id = token.docente_id as number | null;
-      session.user.access_token = token.access_token as string;
-      if (token.sub) session.user.id = token.sub;
-      return session;
-    },
-  },
-
-  pages: {
-    signIn: "/login",
-    error: "/login",
-  },
 });
