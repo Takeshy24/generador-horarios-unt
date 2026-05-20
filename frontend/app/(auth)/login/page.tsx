@@ -56,10 +56,9 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-gradient-to-br from-blue-100/40 to-transparent rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-tl from-blue-100/40 to-transparent rounded-full blur-3xl translate-x-1/2 translate-y-1/2" />
+    <main className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/screen.png')" }}>
+      {/* Overlay for readability */}
+      <div className="absolute inset-0 bg-slate-900/70 backdrop-blur-sm" />
 
       <div className="w-full max-w-md space-y-8 animate-fade-in relative z-10">
         {/* Header */}
@@ -70,12 +69,12 @@ export default function LoginPage() {
             </div>
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-              Generador de Horarios UNT
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">
-              Universidad Nacional de Trujillo — Ing. de Sistemas
-            </p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Generador de Horarios UNT
+          </h1>
+          <p className="text-sm text-slate-300 mt-1">
+            Universidad Nacional de Trujillo — Ing. de Sistemas
+          </p>
           </div>
         </div>
 
