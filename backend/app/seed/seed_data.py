@@ -277,11 +277,16 @@ async def seed() -> None:
             ("A-401",    TipoAulaEnum.comun,       45, "Pabellón A 4°"),
             ("A-402",    TipoAulaEnum.comun,       45, "Pabellón A 4°"),
             ("AUDIOVIS", TipoAulaEnum.comun,       40, "Sala Audiovisuales"),
+            ("AUDIVISUALES", TipoAulaEnum.comun,   40, "Sala Audiovisuales"),
+            ("I-4",      TipoAulaEnum.comun,       40, "Aula I-4"),
+            ("TC-ING-IND", TipoAulaEnum.comun,     50, "TC - Ing. Industrial"),
+            ("PAB-ING-IND", TipoAulaEnum.comun,    50, "Pabellon Ing. Industria"),
             # Laboratorios de cómputo (Lab 1-4 aparecen en horario)
             ("LAB-1",    TipoAulaEnum.lab_computo, 20, "Laboratorio 1"),
             ("LAB-2",    TipoAulaEnum.lab_computo, 20, "Laboratorio 2"),
             ("LAB-3",    TipoAulaEnum.lab_computo, 20, "Laboratorio 3"),
             ("LAB-4",    TipoAulaEnum.lab_computo, 20, "Laboratorio 4"),
+            ("LAB-FISICA", TipoAulaEnum.lab_computo, 20, "Lab. Física"),
             # Laboratorio de Redes
             ("LAB-REDES",TipoAulaEnum.lab_redes,   15, "Laboratorio de Redes"),
             # Laboratorio de BD
@@ -675,7 +680,7 @@ async def seed() -> None:
             "3351": 3, "3352": 3, "3353": 2, "3354": 3, "3355": 3,
             "3356": 2, "3357": 1, "3358": 1,
             "3372": 2, "3375": 3, "3376": 2, "3377": 2, "3378": 2,
-            "3391": 3, "3392": 2, "3393": 1, "3394": 2, "3395": 3,
+            "3391": 3, "3392": 2, "3393": 2, "3394": 2, "3395": 3,
             "3396": 3, "3397": 2, "3398": 2,
         }
         for cod, doc in asignaciones_globales.items():
@@ -710,6 +715,8 @@ async def seed() -> None:
         componentes_por_curso: dict[str, list[ComponenteAProgramar]] = {}
 
         for cod, curso in cursos.items():
+            if curso.ciclo % 2 == 0:
+                continue
             ciclo = curso.ciclo
             n_alumnos = alumnos_por_ciclo.get(ciclo, 25)
 
@@ -809,12 +816,11 @@ async def seed() -> None:
                 if otro.docente_id and componente.docente_id and otro.docente_id == componente.docente_id:
                     return True
                 if otro.seccion.curso.ciclo == ciclo:
-                    labs_paralelos = (
+                    ambos_labs = (
                         otro.tipo == TipoComponenteEnum.L
                         and componente.tipo == TipoComponenteEnum.L
-                        and otro.seccion_id == componente.seccion_id
                     )
-                    if not labs_paralelos:
+                    if not ambos_labs:
                         return True
             return False
 

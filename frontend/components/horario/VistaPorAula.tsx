@@ -208,7 +208,7 @@ export function VistaPorAula({ semestreId }: { semestreId: number }) {
                       <td className="border-r border-gray-200 px-2 py-1 text-right">
                         <span className="text-xs text-orange-600 font-medium">13:00</span>
                       </td>
-                      <td colSpan={5} className="border-b border-gray-200 px-3 py-1">
+                      <td colSpan={6} className="border-b border-gray-200 px-3 py-1">
                         <span className="text-xs text-orange-500 italic">— Almuerzo —</span>
                       </td>
                     </tr>
@@ -235,10 +235,23 @@ export function VistaPorAula({ semestreId }: { semestreId: number }) {
                       className="border-r border-b border-gray-100 p-0.5 align-top"
                       style={{ minWidth: "110px" }}
                     >
-                      <BlockCell
-                        bloque={cell.bloque}
-                        onClick={() => setBloqueEditor(cell.bloque)}
-                      />
+                      <div className="flex gap-1 h-full">
+                        {cell.bloques.map((bloque, idx) => (
+                          <div
+                            key={bloque.id}
+                            className="flex-1"
+                            style={{
+                              borderLeft: idx > 0 ? "1px solid #e5e7eb" : "none",
+                              paddingLeft: idx > 0 ? "0.5rem" : "0",
+                            }}
+                          >
+                            <BlockCell
+                              bloque={bloque}
+                              onClick={() => setBloqueEditor(bloque)}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </td>
                   );
                 });

@@ -103,11 +103,10 @@ def r3_ciclo_no_doble_componente(
         if not (propuestas & _horas_del_slot(slot)):
             continue
 
-        # Excepción: labs paralelos de la misma sección (grupos distintos)
+        # Excepción: ambos componentes son laboratorios (L), no importa la sección
         if (
             comp.tipo_componente == "L"
             and otro.tipo_componente == "L"
-            and comp.seccion_id == otro.seccion_id
         ):
             continue
 
