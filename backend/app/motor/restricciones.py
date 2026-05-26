@@ -9,7 +9,15 @@ from datetime import time
 from dataclasses import dataclass
 from typing import Optional
 
-from .tipos import ComponenteDomain, SlotAsignado, DocenteDomain, AulaDomain
+from .tipos import (
+    ComponenteDomain,
+    SlotAsignado,
+    DocenteDomain,
+    AulaDomain,
+    HORA_INICIO_JORNADA,
+    HORA_FIN_JORNADA,
+    tipo_aula_compatible,
+)
 
 
 @dataclass(frozen=True)
@@ -95,11 +103,10 @@ def r3_ciclo_no_doble_componente(
         if not (propuestas & _horas_del_slot(slot)):
             continue
 
-        # Excepción: labs paralelos de la misma sección (grupos distintos)
+        # Excepción: ambos componentes son laboratorios (L), no importa la sección
         if (
             comp.tipo_componente == "L"
             and otro.tipo_componente == "L"
-            and comp.seccion_id == otro.seccion_id
         ):
             continue
 
@@ -120,7 +127,7 @@ def r4_tipo_aula_correcto(
         if aula.tipo != "comun":
             return False, f"T/P requiere aula común, el aula es de tipo '{aula.tipo}'"
     else:  # L
-        if aula.tipo != comp.tipo_aula_requerido:
+        if not tipo_aula_compatible(comp.tipo_aula_requerido, aula.tipo):
             return False, (
                 f"Lab requiere '{comp.tipo_aula_requerido}', "
                 f"el aula es de tipo '{aula.tipo}'"
@@ -170,25 +177,20 @@ def r6_dentro_de_disponibilidad(
     )
 
 
-# ── R7: Bloques de 50 min ─────────────────────────────────────────────────────
-#        Estructural: el generador solo crea slots de 50 min, siempre cumplida.
-
 def r7_bloques_50_min() -> tuple[bool, str]:
     return True, ""
 
 
-# ── R8: Franjas válidas: mañana (7-12) o tarde (14-19), sin cruzar el break ────
-
+# R8: Jornada real continua.
 def r8_horario_franja_correcta(
     start_h: int,
     n_horas: int,
 ) -> tuple[bool, str]:
     end_h = start_h + n_horas - 1
-    en_manana = (7 <= start_h and end_h <= 12)
-    en_tarde = (14 <= start_h and end_h <= 19)
-    if not (en_manana or en_tarde):
+    dentro_jornada = HORA_INICIO_JORNADA <= start_h and end_h <= HORA_FIN_JORNADA
+    if not dentro_jornada:
         return False, (
-            f"Bloque {start_h}:00-{end_h}:50 cruza el break de mediodía (13-14h)"
+            f"Bloque {start_h}:00-{end_h}:50 fuera de la jornada {HORA_INICIO_JORNADA}:00-{HORA_FIN_JORNADA}:50"
         )
     return True, ""
 
@@ -248,29 +250,8 @@ def r11_hora_almuerzo_del_ciclo(
     estado: list[SlotAsignado],
     componentes_map: dict[int, ComponenteDomain],
 ) -> tuple[bool, str]:
-    n = comp.horas_semanales
-    propuestas = _horas_propuestas(start_h, n)
-    ciclo = comp.ciclo
-
-    # Horas ya asignadas a este ciclo en este día
-    horas_ciclo: set[int] = set()
-    for slot in estado:
-        otro = componentes_map[slot.componente_id]
-        if otro.ciclo == ciclo and slot.dia == dia:
-            horas_ciclo.update(_horas_del_slot(slot))
-
-    todas = horas_ciclo | propuestas
-
-    tiene_manana = any(7 <= h <= 11 for h in todas)
-    tiene_mediodia = 12 in todas
-    tiene_tarde = any(14 <= h <= 19 for h in todas)
-
-    if tiene_manana and tiene_tarde and tiene_mediodia:
-        return False, (
-            f"Ciclo {ciclo} quedaría sin hora de almuerzo libre el {dia} "
-            f"(sin franja libre en 12:00-14:00)"
-        )
     return True, ""
+
 
 
 # ── Función agregadora ────────────────────────────────────────────────────────

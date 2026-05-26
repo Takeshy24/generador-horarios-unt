@@ -38,11 +38,12 @@ export default async function ProtectedLayout({
                 <HelpCircle className="h-5 w-5" />
               </button>
 
-              {/* Publicar Horario Button */}
-              <Button className="bg-[#0052cc] hover:bg-[#0040a0] text-white gap-2 h-10 px-4 rounded-lg font-medium shadow-sm">
-                <ArrowUpFromLine className="h-4 w-4" />
-                Publicar Horario
-              </Button>
+              {role === "director_escuela" && (
+                <Button className="bg-[#0052cc] hover:bg-[#0040a0] text-white gap-2 h-10 px-4 rounded-lg font-medium shadow-sm">
+                  <ArrowUpFromLine className="h-4 w-4" />
+                  Publicar Horario
+                </Button>
+              )}
             </div>
           </div>
         </header>

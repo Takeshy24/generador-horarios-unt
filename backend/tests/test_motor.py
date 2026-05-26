@@ -87,31 +87,33 @@ def make_comp(
 def test_candidatos_1h():
     c = _candidatos_para_n_horas(1)
     # 5 días × (6 mañana + 6 tarde) = 60
-    assert len(c) == 60
+    assert len(c) == 84
     assert ("LUN", 7) in c
-    assert ("VIE", 19) in c
+    assert ("SAB", 20) in c
     # No debe incluir hora 13 (break)
-    assert ("LUN", 13) not in c
+    assert ("LUN", 13) in c
 
 
 def test_candidatos_3h():
     c = _candidatos_para_n_horas(3)
     # Mañana: 7,8,9,10 (4 starts) × 5 días = 20
     # Tarde:  14,15,16,17 (4 starts) × 5 días = 20
-    assert len(c) == 40
+    assert len(c) == 72
     assert ("LUN", 10) in c       # 10+3-1=12 ≤ 12 ✓
-    assert ("LUN", 11) not in c   # 11+3-1=13 > 12 ✗
+    assert ("LUN", 11) in c
     assert ("LUN", 17) in c       # 17+3-1=19 ≤ 19 ✓
-    assert ("LUN", 18) not in c   # 18+3-1=20 > 19 ✗
+    assert ("LUN", 18) in c
+    assert ("LUN", 19) not in c
 
 
 def test_candidatos_6h():
     c = _candidatos_para_n_horas(6)
     # Solo start 7 mañana y start 14 tarde, × 5 días = 10
-    assert len(c) == 10
+    assert len(c) == 54
     assert ("LUN", 7) in c
     assert ("LUN", 14) in c
-    assert ("LUN", 8) not in c
+    assert ("LUN", 15) in c
+    assert ("LUN", 16) not in c
 
 
 # ── Tests de restricciones individuales ──────────────────────────────────────
@@ -119,10 +121,11 @@ def test_candidatos_6h():
 def test_r8_franja_correcta():
     assert r8_horario_franja_correcta(7, 1)[0] is True
     assert r8_horario_franja_correcta(12, 1)[0] is True    # último slot mañana
-    assert r8_horario_franja_correcta(19, 1)[0] is True    # último slot tarde
-    assert r8_horario_franja_correcta(13, 1)[0] is False   # break
+    assert r8_horario_franja_correcta(13, 1)[0] is True
+    assert r8_horario_franja_correcta(20, 1)[0] is True
     assert r8_horario_franja_correcta(11, 2)[0] is True    # 11-12:50 OK
-    assert r8_horario_franja_correcta(12, 2)[0] is False   # 12-13:50 cruza break
+    assert r8_horario_franja_correcta(12, 2)[0] is True
+    assert r8_horario_franja_correcta(20, 2)[0] is False
 
 
 def test_r6_disponibilidad():
@@ -220,7 +223,7 @@ def test_r3_labs_paralelos_misma_seccion():
     assert ok is True
 
 
-def test_r11_almuerzo_bloqueado():
+def test_r11_almuerzo_permitido_en_horario_real():
     """Si ciclo tiene mañana + tarde, slot a las 12 debe rechazarse."""
     comp_manana = make_comp(1, ciclo=7, horas=1, docente_id=1)
     comp_tarde = make_comp(2, ciclo=7, horas=1, docente_id=2)
@@ -236,8 +239,8 @@ def test_r11_almuerzo_bloqueado():
 
     # Slot a las 12 con mañana (9) y tarde (15) → violación
     ok, razon = r11_hora_almuerzo_del_ciclo(comp_mediodia, "LUN", 12, estado, comp_map)
-    assert ok is False
-    assert "almuerzo" in razon.lower() or "12" in razon
+    assert ok is True
+    assert razon == ""
 
     # Slot a las 11 (no ocupa las 12) → OK
     ok, _ = r11_hora_almuerzo_del_ciclo(comp_mediodia, "LUN", 11, estado, comp_map)

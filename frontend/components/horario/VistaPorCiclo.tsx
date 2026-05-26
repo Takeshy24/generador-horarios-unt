@@ -36,14 +36,14 @@ function BlockCell({ bloque, onClick }: { bloque: BloqueAPI; onClick: () => void
   const tipo   = bloque.componente.tipo;
   const style  = courseStyle(curso.id);
 
-  const nombre = curso.nombre.length > 26
-    ? curso.nombre.substring(0, 24) + "…"
+  const nombre = curso.nombre.length > 30
+    ? curso.nombre.substring(0, 28) + "…"
     : curso.nombre;
 
   return (
     <div
       onClick={onClick}
-      className="h-full rounded border cursor-pointer hover:brightness-95 transition-all select-none px-1.5 py-1 flex flex-col gap-0.5 overflow-hidden"
+      className="h-full rounded border cursor-pointer hover:brightness-95 transition-all select-none px-1 py-1 flex flex-col gap-0.5 overflow-hidden"
       style={{ ...style, borderWidth: "1px", minHeight: "52px" }}
     >
       <div className="flex items-start justify-between gap-1">
@@ -180,7 +180,7 @@ export function VistaPorCiclo({
                       <td className="border-r border-gray-200 px-2 py-1 text-right">
                         <span className="text-xs text-orange-600 font-medium">13:00</span>
                       </td>
-                      <td colSpan={5} className="border-b border-gray-200 px-3 py-1">
+                      <td colSpan={6} className="border-b border-gray-200 px-3 py-1">
                         <span className="text-xs text-orange-500 italic">— Almuerzo —</span>
                       </td>
                     </tr>
@@ -206,10 +206,23 @@ export function VistaPorCiclo({
                       className="border-r border-b border-gray-100 p-0.5 align-top"
                       style={{ minWidth: "110px" }}
                     >
-                      <BlockCell
-                        bloque={cell.bloque}
-                        onClick={() => setBloqueEditor(cell.bloque)}
-                      />
+                      <div className="flex gap-1 h-full">
+                        {cell.bloques.map((bloque, idx) => (
+                          <div
+                            key={bloque.id}
+                            className="flex-1"
+                            style={{
+                              borderLeft: idx > 0 ? "1px solid #e5e7eb" : "none",
+                              paddingLeft: idx > 0 ? "0.5rem" : "0",
+                            }}
+                          >
+                            <BlockCell
+                              bloque={bloque}
+                              onClick={() => setBloqueEditor(bloque)}
+                            />
+                          </div>
+                        ))}
+                      </div>
                     </td>
                   );
                 });

@@ -30,8 +30,8 @@ export const DIAS_LABELS: Record<string, string> = {
   LUN: "Lunes", MAR: "Martes", MIE: "Miércoles", JUE: "Jueves", VIE: "Viernes", SAB: "Sábado",
 };
 
-export const HORAS_MANANA = [7, 8, 9, 10, 11, 12];
-export const HORAS_TARDE  = [14, 15, 16, 17, 18, 19];
+export const HORAS_MANANA = [7, 8, 9, 10, 11, 12, 13];
+export const HORAS_TARDE  = [14, 15, 16, 17, 18, 19, 20];
 export const TODAS_HORAS  = [...HORAS_MANANA, ...HORAS_TARDE];
 
 export const CICLO_ROMANO: Record<number, string> = {
@@ -75,13 +75,22 @@ export function apellido(nombre: string): string {
 
 export type CellState =
   | { kind: "empty" }
-  | { kind: "block"; bloque: BloqueAPI; span: number }
+  | { kind: "block"; bloques: BloqueAPI[]; span: number }
   | { kind: "spanned" };
 
 export function getSpan(b: BloqueAPI): number {
   const startH = parseInt(b.hora_inicio.split(":")[0]);
   const endH   = parseInt(b.hora_fin.split(":")[0]);
   return endH - startH + 1;
+}
+
+function bloquesSeSuperponen(b1: BloqueAPI, b2: BloqueAPI): boolean {
+  if (b1.dia !== b2.dia) return false;
+  const s1 = parseInt(b1.hora_inicio.split(":")[0]);
+  const e1 = parseInt(b1.hora_fin.split(":")[0]);
+  const s2 = parseInt(b2.hora_inicio.split(":")[0]);
+  const e2 = parseInt(b2.hora_fin.split(":")[0]);
+  return !(e1 < s2 || e2 < s1);
 }
 
 export function buildGrid(
@@ -93,16 +102,32 @@ export function buildGrid(
     TODAS_HORAS.forEach(h => (g[d][h] = { kind: "empty" }));
   });
 
-  for (const b of bloques) {
-    const startH = parseInt(b.hora_inicio.split(":")[0]);
-    const span   = getSpan(b);
-    if (!g[b.dia] || g[b.dia][startH] === undefined) continue;
-    if (g[b.dia][startH].kind === "block") continue;  // conflict — skip
+  const procesados = new Set<number>();
 
-    g[b.dia][startH] = { kind: "block", bloque: b, span };
+  for (const b of bloques) {
+    if (procesados.has(b.id)) continue;
+    const startH = parseInt(b.hora_inicio.split(":")[0]);
+    const span = getSpan(b);
+
+    const bloquesParalelos: BloqueAPI[] = [b];
+    procesados.add(b.id);
+
+    for (const otro of bloques) {
+      if (procesados.has(otro.id)) continue;
+      if (bloquesSeSuperponen(b, otro)) {
+        bloquesParalelos.push(otro);
+        procesados.add(otro.id);
+      }
+    }
+
+    if (!g[b.dia] || g[b.dia][startH] === undefined) continue;
+    if (g[b.dia][startH].kind !== "empty") continue;
+
+    g[b.dia][startH] = { kind: "block", bloques: bloquesParalelos, span };
     for (let h = startH + 1; h < startH + span; h++) {
       if (g[b.dia][h] !== undefined) g[b.dia][h] = { kind: "spanned" };
     }
   }
+
   return g;
 }

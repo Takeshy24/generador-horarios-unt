@@ -30,7 +30,7 @@ DIA_LABELS = {
     "LUN": "Lunes", "MAR": "Martes", "MIE": "Miércoles",
     "JUE": "Jueves", "VIE": "Viernes", "SAB": "Sábado",
 }
-HORAS = [7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19]
+HORAS = list(range(7, 21))
 
 CICLO_ROMANO = {
     1: "I", 2: "II", 3: "III", 4: "IV", 5: "V",
@@ -50,14 +50,11 @@ _DEPT_FILLS  = [
 _DIA_COL  = {dia: i + 2 for i, dia in enumerate(DIAS)}  # LUN→col2 … SAB→col7
 _TITLE_ROW  = 1
 _HEADER_ROW = 2
-_LUNCH_ROW  = 9   # between hora 12 (row 8) and hora 14 (row 10)
 
 
 def _hora_to_row(hora: int) -> int:
-    if 7 <= hora <= 12:
-        return hora - 7 + _HEADER_ROW + 1   # 7→3 … 12→8
-    if 14 <= hora <= 19:
-        return hora - 14 + _LUNCH_ROW + 1   # 14→10 … 19→15
+    if 7 <= hora <= 20:
+        return hora - 7 + _HEADER_ROW + 1
     raise ValueError(f"Hora {hora} fuera de rango")
 
 
@@ -116,14 +113,6 @@ def _build_horario_sheet(ws, bloques: list[dict], title: str, semestre_codigo: s
             c.fill = PatternFill("solid", fgColor="FFFFFF")
             c.border = _border()
 
-    # Lunch separator
-    ws.row_dimensions[_LUNCH_ROW].height = 13
-    ws.merge_cells(start_row=_LUNCH_ROW, start_column=1, end_row=_LUNCH_ROW, end_column=7)
-    lunch = ws.cell(row=_LUNCH_ROW, column=1, value="— Almuerzo —")
-    lunch.font = Font(italic=True, size=7.5, color="AAAAAA")
-    lunch.fill = PatternFill("solid", fgColor="FFF7ED")
-    lunch.alignment = Alignment(horizontal="center", vertical="center")
-
     # Place schedule blocks
     occupied: set[tuple[int, int]] = set()
     for bloque in bloques:
@@ -172,7 +161,7 @@ def _build_horario_sheet(ws, bloques: list[dict], title: str, semestre_codigo: s
         )
 
     # Footer
-    footer_row = _hora_to_row(19) + 1
+    footer_row = _hora_to_row(20) + 1
     ws.row_dimensions[footer_row].height = 13
     ws.merge_cells(start_row=footer_row, start_column=1, end_row=footer_row, end_column=7)
     footer = ws.cell(row=footer_row, column=1,

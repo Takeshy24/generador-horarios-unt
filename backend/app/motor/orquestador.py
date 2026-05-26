@@ -20,6 +20,7 @@ from .tipos import (
 from .pre_validador import pre_validar
 from .generador import generar
 from .reporte import enriquecer_infactibles
+from .plantillas_reales import PLANTILLAS_POR_SEMESTRE
 
 logger = logging.getLogger(__name__)
 
@@ -131,8 +132,10 @@ async def _cargar_datos(db: AsyncSession, semestre_id: int):
                 None,
             )
             num_alumnos = grupo.num_alumnos if grupo else sec.num_alumnos
+            grupo_numero = grupo.numero if grupo else None
         else:
             num_alumnos = sec.num_alumnos
+            grupo_numero = None
 
         # Tipo de aula requerido
         if comp.tipo.value == "L":
@@ -152,9 +155,11 @@ async def _cargar_datos(db: AsyncSession, semestre_id: int):
             num_alumnos=num_alumnos,
             tipo_aula_requerido=tipo_aula_req,
             seccion_letra=sec.letra,
+            curso_codigo=curso.codigo,
+            grupo_lab_numero=grupo_numero,
         ))
 
-    return componentes_domain, list(docentes_domain.values()), aulas_domain
+    return componentes_domain, list(docentes_domain.values()), aulas_domain, semestre.codigo
 
 
 async def ejecutar_generacion(
@@ -172,7 +177,7 @@ async def ejecutar_generacion(
     """
     logger.info("=== Iniciando generación para semestre %d ===", semestre_id)
 
-    componentes, docentes, aulas = await _cargar_datos(db, semestre_id)
+    componentes, docentes, aulas, semestre_codigo = await _cargar_datos(db, semestre_id)
 
     if not componentes:
         raise ValueError(f"El semestre {semestre_id} no tiene componentes a programar")
@@ -202,7 +207,12 @@ async def ejecutar_generacion(
         logger.info("Horario previo eliminado")
 
     # Ejecutar motor
-    resultado = generar(componentes, docentes, aulas)
+    resultado = generar(
+        componentes,
+        docentes,
+        aulas,
+        plantilla=PLANTILLAS_POR_SEMESTRE.get(semestre_codigo),
+    )
 
     # Enriquecer infactibles con diagnóstico
     comp_map = {c.id: c for c in componentes}
@@ -233,4 +243,5 @@ async def ejecutar_generacion(
 
 async def cargar_datos_para_prevalidacion(db: AsyncSession, semestre_id: int):
     """Expone la carga de datos para el endpoint de pre-validación."""
-    return await _cargar_datos(db, semestre_id)
+    componentes, docentes, aulas, _semestre_codigo = await _cargar_datos(db, semestre_id)
+    return componentes, docentes, aulas

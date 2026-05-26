@@ -400,7 +400,7 @@ export function EditorBloque({
                     );
                   })}
                 </div>
-                <p className="text-xs text-muted-foreground italic">7-12h mañana · 14-19h tarde</p>
+                <p className="text-xs text-muted-foreground italic">7-13h mañana · 14-20h tarde</p>
               </div>
               )}
 

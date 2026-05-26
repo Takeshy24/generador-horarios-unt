@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 
 from .tipos import (
     ComponenteDomain, DocenteDomain, AulaDomain, InfactibilidadInfo, SlotAsignado,
-    DIAS, ALL_STARTS,
+    DIAS, ALL_STARTS, tipo_aula_compatible,
 )
 from .restricciones import verificar_todas, r8_horario_franja_correcta
 
@@ -41,7 +41,10 @@ def _diagnosticar(
     docente_str = docente.nombre if docente else "Sin docente"
 
     # ── R4 / R5: verificar pool de aulas sin necesidad de sondear ────────────
-    aulas_tipo_ok = [a for a in aulas if a.tipo == comp.tipo_aula_requerido]
+    aulas_tipo_ok = [
+        a for a in aulas
+        if tipo_aula_compatible(comp.tipo_aula_requerido, a.tipo)
+    ]
     if not aulas_tipo_ok:
         return (
             "R4",

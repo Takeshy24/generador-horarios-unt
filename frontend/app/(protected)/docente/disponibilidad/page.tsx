@@ -14,9 +14,9 @@ const DIAS = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB"] as const;
 const DIAS_LABELS: Record<string, string> = {
   LUN: "Lunes", MAR: "Martes", MIE: "Miércoles", JUE: "Jueves", VIE: "Viernes", SAB: "Sábado",
 };
-// Hours 7-12 (morning) and 14-19 (afternoon) — no 13 (break) or 20
-const HORAS_MANANA = [7, 8, 9, 10, 11, 12];
-const HORAS_TARDE = [14, 15, 16, 17, 18, 19];
+// Jornada real continua: 7-13 (manana) y 14-20 (tarde).
+const HORAS_MANANA = [7, 8, 9, 10, 11, 12, 13];
+const HORAS_TARDE = [14, 15, 16, 17, 18, 19, 20];
 const TODAS_HORAS = [...HORAS_MANANA, ...HORAS_TARDE];
 
 const HORAS_REQUERIDAS_LABEL: Record<string, number> = {
