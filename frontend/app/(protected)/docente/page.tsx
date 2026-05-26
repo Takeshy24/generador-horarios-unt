@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Clock, BookOpen, Calendar, CheckCircle2, AlertCircle, ArrowRight } from "lucide-react";
+import { Clock, BookOpen, Calendar, CheckCircle2, AlertCircle, ArrowRight, BookMarked } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -56,7 +56,7 @@ export default async function DocenteDashboard() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Link href="/docente/disponibilidad" className="group">
           <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-border/50 hover:border-primary/30 h-full">
             <CardHeader className="pb-3">
@@ -127,6 +127,31 @@ export default async function DocenteDashboard() {
               </p>
               <div className="flex items-center gap-1 text-xs text-primary mt-3 font-medium">
                 Ver horario <ArrowRight className="h-3 w-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
+
+        <Link href="/docente/recuperacion" className="group">
+          <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-border/50 hover:border-primary/30 h-full">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="rounded-xl bg-indigo-50 p-3">
+                  <BookMarked className="h-6 w-6 text-indigo-600" />
+                </div>
+                <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+              </div>
+              <CardTitle className="text-base mt-3">Clases de Recuperación</CardTitle>
+              <CardDescription className="text-xs">
+                Reserva aulas y laboratorios disponibles
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-xs text-muted-foreground">
+                Consulta disponibilidad y agenda una clase de recuperación en el espacio que necesites.
+              </p>
+              <div className="flex items-center gap-1 text-xs text-primary mt-3 font-medium">
+                Ver disponibilidad <ArrowRight className="h-3 w-3 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
               </div>
             </CardContent>
           </Card>

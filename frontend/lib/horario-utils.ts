@@ -23,11 +23,11 @@ export type BloqueAPI = {
 export type AulaSimple = { id: number; codigo: string; tipo: string; capacidad: number };
 export type DocenteSimple = { id: number; nombre: string; tipo: string };
 
-export const DIAS = ["LUN", "MAR", "MIE", "JUE", "VIE"] as const;
+export const DIAS = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB"] as const;
 export type DiaKey = typeof DIAS[number];
 
 export const DIAS_LABELS: Record<string, string> = {
-  LUN: "Lunes", MAR: "Martes", MIE: "Miércoles", JUE: "Jueves", VIE: "Viernes",
+  LUN: "Lunes", MAR: "Martes", MIE: "Miércoles", JUE: "Jueves", VIE: "Viernes", SAB: "Sábado",
 };
 
 export const HORAS_MANANA = [7, 8, 9, 10, 11, 12];

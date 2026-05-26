@@ -12,7 +12,7 @@ from app.models.enums import (
 
 if TYPE_CHECKING:
     from app.models.institucional import Departamento, User
-    from app.models.academico import ComponenteAProgramar
+    from app.models.academico import ComponenteAProgramar, ReservaRecuperacion
 
 
 class Docente(Base):
@@ -35,6 +35,7 @@ class Docente(Base):
         back_populates="docente", uselist=False
     )
     componentes: Mapped[List["ComponenteAProgramar"]] = relationship(back_populates="docente")
+    reservas_recuperacion: Mapped[List["ReservaRecuperacion"]] = relationship(back_populates="docente")
 
 
 class DocenteCargo(Base):

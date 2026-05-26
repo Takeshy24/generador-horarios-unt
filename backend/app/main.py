@@ -8,7 +8,7 @@ from app.core.config import settings
 from app.core.db import engine
 from app.api import health, seed, auth_routes, semestres, docentes_routes, asignaciones_routes
 from app.api import horario as horario_routes
-from app.api import pdf_routes, admin_routes, director_routes
+from app.api import pdf_routes, admin_routes, director_routes, recuperacion_routes, excel_routes
 
 
 @asynccontextmanager
@@ -45,3 +45,5 @@ app.include_router(horario_routes.router, prefix="/api")
 app.include_router(pdf_routes.router, prefix="/api")
 app.include_router(admin_routes.router, prefix="/api")
 app.include_router(director_routes.router, prefix="/api")
+app.include_router(recuperacion_routes.router, prefix="/api")
+app.include_router(excel_routes.router, prefix="/api")

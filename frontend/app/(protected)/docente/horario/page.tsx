@@ -26,7 +26,8 @@ export default function MiHorarioPage() {
   const [bloques,      setBloques]      = useState<BloqueAPI[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [error,        setError]        = useState<string | null>(null);
-  const [downloading,  setDownloading]  = useState(false);
+  const [downloading,    setDownloading]    = useState(false);
+  const [downloadingXlsx, setDownloadingXlsx] = useState(false);
 
   const loadData = useCallback(async () => {
     if (!session?.user?.access_token) return;
@@ -65,6 +66,30 @@ export default function MiHorarioPage() {
     if (session.user.role !== "docente") { router.replace("/"); return; }
     loadData();
   }, [status, session, router, loadData]);
+
+  const handleDescargarExcel = async () => {
+    if (!session?.user?.access_token || !semestre || !docente) return;
+    setDownloadingXlsx(true);
+    try {
+      const res = await fetch(
+        `${API}/api/horario/excel/docente/${docente.id}?semestre_id=${semestre.id}`,
+        { headers: { Authorization: `Bearer ${session.user.access_token}` } }
+      );
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `mi_horario_${semestre.codigo}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch {
+      setError("Error al descargar el Excel.");
+    } finally {
+      setDownloadingXlsx(false);
+    }
+  };
 
   const handleDescargarPdf = async () => {
     if (!session?.user?.access_token || !semestre || !docente) return;
@@ -177,6 +202,18 @@ export default function MiHorarioPage() {
               ? <Loader2 className="h-4 w-4 animate-spin" />
               : <Download className="h-4 w-4" />}
             Descargar PDF
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleDescargarExcel}
+            disabled={downloadingXlsx}
+            className="flex items-center gap-1.5 text-green-700 border-green-300 hover:bg-green-50"
+          >
+            {downloadingXlsx
+              ? <Loader2 className="h-4 w-4 animate-spin" />
+              : <Download className="h-4 w-4" />}
+            Descargar Excel
           </Button>
         </div>
       </div>

@@ -19,6 +19,7 @@ const DIAS_OPTIONS = [
   { value: "MIE", label: "Miércoles" },
   { value: "JUE", label: "Jueves" },
   { value: "VIE", label: "Viernes" },
+  { value: "SAB", label: "Sábado" },
 ];
 
 type Preferencias = {

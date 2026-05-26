@@ -10,9 +10,9 @@ import { Badge } from "@/components/ui/badge";
 
 const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-const DIAS = ["LUN", "MAR", "MIE", "JUE", "VIE"] as const;
+const DIAS = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB"] as const;
 const DIAS_LABELS: Record<string, string> = {
-  LUN: "Lunes", MAR: "Martes", MIE: "Miércoles", JUE: "Jueves", VIE: "Viernes",
+  LUN: "Lunes", MAR: "Martes", MIE: "Miércoles", JUE: "Jueves", VIE: "Viernes", SAB: "Sábado",
 };
 // Hours 7-12 (morning) and 14-19 (afternoon) — no 13 (break) or 20
 const HORAS_MANANA = [7, 8, 9, 10, 11, 12];
