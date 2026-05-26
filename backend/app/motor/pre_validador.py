@@ -94,8 +94,8 @@ def pre_validar(
 
     slots_por_tipo: dict[str, int] = {}
     for aula in aulas:
-        # 12 slots/día × 5 días = 60 slots por aula
-        slots_por_tipo[aula.tipo] = slots_por_tipo.get(aula.tipo, 0) + 60
+        # 12 slots/día × 6 días (L-S) = 72 slots por aula
+        slots_por_tipo[aula.tipo] = slots_por_tipo.get(aula.tipo, 0) + 72
 
     for tipo, horas in demanda_por_tipo.items():
         oferta = slots_por_tipo.get(tipo, 0)

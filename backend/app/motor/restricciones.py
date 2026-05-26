@@ -177,7 +177,7 @@ def r7_bloques_50_min() -> tuple[bool, str]:
     return True, ""
 
 
-# ── R8: Horario L-V, franjas mañana (7-13) o tarde (14-20), sin cruzar break ─
+# ── R8: Franjas válidas: mañana (7-12) o tarde (14-19), sin cruzar el break ────
 
 def r8_horario_franja_correcta(
     start_h: int,

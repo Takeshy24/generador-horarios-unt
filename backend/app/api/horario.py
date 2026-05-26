@@ -135,6 +135,7 @@ def _serializar_bloque(b: HorarioBloque) -> dict:
             "docente": {
                 "id": docente.id,
                 "nombre": docente.nombre_completo,
+                "departamento": docente.departamento.nombre if docente.departamento else "—",
             } if docente else None,
             "seccion": {
                 "id": sec.id,
@@ -165,7 +166,7 @@ async def _get_bloques_db(
         .options(
             selectinload(HorarioBloque.aula),
             selectinload(HorarioBloque.componente).options(
-                selectinload(ComponenteAProgramar.docente),
+                selectinload(ComponenteAProgramar.docente).selectinload(Docente.departamento),
                 selectinload(ComponenteAProgramar.seccion).selectinload(Seccion.curso),
             ),
         )
@@ -344,14 +345,16 @@ async def _validar_movimiento_logic(
 
     nuevo_dia = req.nuevo_dia.upper()
 
-    # Verificar todas las restricciones
+    # Verificar restricciones estructurales (R1-R5, R8, R11).
+    # R6 (disponibilidad) y R9 (tope de carga) se omiten en movimientos manuales:
+    # el director puede asignar cualquier día independientemente de la disponibilidad declarada.
     violaciones: list[Violacion] = verificar_todas(
         comp=comp_domain,
         dia=nuevo_dia,
         start_h=start_h,
         aula=aula_domain,
         estado=estado,
-        docente=docente_domain,
+        docente=None,
         componentes_map=componentes_map,
     )
 
@@ -541,6 +544,117 @@ async def get_pendientes(
             })
 
     return {"semestre_id": semestre_id, "total": len(pendientes), "pendientes": pendientes}
+
+
+# ── GET /api/horario/bloques/{bloque_id}/slots-validos ────────────────────────
+
+@router.get("/bloques/{bloque_id}/slots-validos")
+async def slots_validos_bloque(
+    bloque_id: int,
+    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Para cada slot (día + hora), devuelve los aula_ids que NO generan ninguna
+    violación para el bloque dado. El estado del semestre se carga una sola vez.
+    Respuesta: {"bloque_id": N, "slots": {"LUN:07": [1, 5], "LUN:08": [], ...}}
+    """
+    bloque_res = await db.execute(
+        select(HorarioBloque)
+        .where(HorarioBloque.id == bloque_id)
+        .options(
+            selectinload(HorarioBloque.componente).options(
+                selectinload(ComponenteAProgramar.seccion).selectinload(Seccion.curso),
+                selectinload(ComponenteAProgramar.docente).options(
+                    selectinload(Docente.disponibilidades),
+                    selectinload(Docente.cargos),
+                ),
+            )
+        )
+    )
+    bloque = bloque_res.scalar_one_or_none()
+    if not bloque:
+        raise HTTPException(status_code=404, detail="Bloque no encontrado")
+
+    comp  = bloque.componente
+    sec   = comp.seccion
+    curso = sec.curso
+
+    tipo_aula_req = (
+        (curso.tipo_lab_requerido or "lab_computo") if comp.tipo.value == "L" else "comun"
+    )
+    comp_domain = ComponenteDomain(
+        id=comp.id,
+        seccion_id=comp.seccion_id,
+        curso_id=curso.id,
+        curso_nombre=curso.nombre,
+        ciclo=curso.ciclo,
+        tipo_componente=comp.tipo.value,
+        docente_id=comp.docente_id,
+        horas_semanales=comp.horas_semanales,
+        num_alumnos=sec.num_alumnos,
+        tipo_aula_requerido=tipo_aula_req,
+        seccion_letra=sec.letra,
+    )
+
+    docente_domain: Optional[DocenteDomain] = None
+    if comp.docente:
+        d = comp.docente
+        tope = TOPES_REGIMEN.get(d.regimen.value, 8)
+        reduccion = max(
+            (REDUCCION_POR_CARGO.get(c.cargo, 0) for c in d.cargos if c.fecha_fin is None),
+            default=0,
+        )
+        docente_domain = DocenteDomain(
+            id=d.id,
+            nombre=d.nombre_completo,
+            tipo=d.tipo.value,
+            antiguedad_anios=(_HOY - d.fecha_ingreso).days / 365.25,
+            disponibilidad=tuple(
+                DisponibilidadSlot(
+                    dia=disp.dia.value,
+                    hora_inicio=disp.hora_inicio,
+                    hora_fin=disp.hora_fin,
+                )
+                for disp in d.disponibilidades
+            ),
+            tope_horas=max(0, tope - reduccion),
+        )
+
+    # Cargar estado una sola vez (excluye el bloque que se va a mover)
+    estado, componentes_map = await _cargar_estado_para_validacion(
+        db, bloque.semestre_id, excluir_bloque_id=bloque_id
+    )
+    componentes_map[comp.id] = comp_domain
+
+    # Cargar todas las aulas y convertir a AulaDomain
+    aulas_res = await db.execute(select(Aula).order_by(Aula.tipo, Aula.codigo))
+    todas_aulas = [
+        AulaDomain(id=a.id, codigo=a.codigo, tipo=a.tipo.value, capacidad=a.capacidad)
+        for a in aulas_res.scalars().all()
+    ]
+
+    _DIAS  = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB"]
+    _HORAS = [7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19]
+
+    # Verificar todas las combinaciones en Python puro (sin más accesos a DB)
+    slots: dict[str, list[int]] = {}
+    for dia in _DIAS:
+        for hora in _HORAS:
+            slots[f"{dia}:{hora:02d}"] = [
+                a.id for a in todas_aulas
+                if not verificar_todas(
+                    comp=comp_domain,
+                    dia=dia,
+                    start_h=hora,
+                    aula=a,
+                    estado=estado,
+                    docente=None,   # R6/R9 omitidos: el editor manual no restringe por disponibilidad
+                    componentes_map=componentes_map,
+                )
+            ]
+
+    return {"bloque_id": bloque_id, "slots": slots}
 
 
 # ── POST /api/horario/validar-movimiento ──────────────────────────────────────

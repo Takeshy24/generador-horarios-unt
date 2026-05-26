@@ -11,4 +11,5 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.17
 httpx==0.28.1
 reportlab==4.2.5
+openpyxl==3.1.5
 psycopg2-binary==2.9.10

@@ -1,7 +1,7 @@
-from datetime import date, time
+from datetime import date, time, datetime
 from typing import TYPE_CHECKING, List, Optional
 
-from sqlalchemy import String, Integer, Date, Time, Boolean, ForeignKey, Table, Column
+from sqlalchemy import String, Integer, Date, Time, DateTime, Boolean, ForeignKey, Table, Column, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.db import Base
@@ -54,6 +54,7 @@ class Aula(Base):
         secondary=semestre_aulas_disponibles, back_populates="aulas"
     )
     bloques: Mapped[List["HorarioBloque"]] = relationship(back_populates="aula")
+    reservas_recuperacion: Mapped[List["ReservaRecuperacion"]] = relationship(back_populates="aula")
 
 
 class Semestre(Base):
@@ -72,6 +73,7 @@ class Semestre(Base):
         secondary=semestre_aulas_disponibles, back_populates="semestres"
     )
     bloques: Mapped[List["HorarioBloque"]] = relationship(back_populates="semestre")
+    reservas_recuperacion: Mapped[List["ReservaRecuperacion"]] = relationship(back_populates="semestre")
 
 
 class Seccion(Base):
@@ -131,3 +133,21 @@ class HorarioBloque(Base):
     semestre: Mapped["Semestre"] = relationship(back_populates="bloques")
     componente: Mapped["ComponenteAProgramar"] = relationship(back_populates="bloques")
     aula: Mapped["Aula"] = relationship(back_populates="bloques")
+
+
+class ReservaRecuperacion(Base):
+    __tablename__ = "reservas_recuperacion"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    docente_id: Mapped[int] = mapped_column(ForeignKey("docentes.id"), nullable=False)
+    aula_id: Mapped[int] = mapped_column(ForeignKey("aulas.id"), nullable=False)
+    semestre_id: Mapped[int] = mapped_column(ForeignKey("semestres.id"), nullable=False)
+    fecha: Mapped[date] = mapped_column(Date, nullable=False)
+    hora_inicio: Mapped[time] = mapped_column(Time, nullable=False)
+    hora_fin: Mapped[time] = mapped_column(Time, nullable=False)
+    motivo: Mapped[Optional[str]] = mapped_column(String(300), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
+
+    docente: Mapped["Docente"] = relationship(back_populates="reservas_recuperacion")
+    aula: Mapped["Aula"] = relationship(back_populates="reservas_recuperacion")
+    semestre: Mapped["Semestre"] = relationship(back_populates="reservas_recuperacion")

@@ -8,6 +8,7 @@ import {
   Home, Users, BookOpen, Building2, Calendar,
   ClipboardList, BarChart2, Clock, Star, LogOut,
   GraduationCap, Settings, Info, ChevronLeft, ChevronRight,
+  BookMarked,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ const NAV_ITEMS: Record<string, NavItem[]> = {
     { label: "Mis Preferencias", href: "/docente/preferencias", icon: <Star className="h-4 w-4" /> },
     { label: "Mis Cursos", href: "/docente/cursos", icon: <BookOpen className="h-4 w-4" /> },
     { label: "Mi Horario", href: "/docente/horario", icon: <Calendar className="h-4 w-4" /> },
+    { label: "Recuperación", href: "/docente/recuperacion", icon: <BookMarked className="h-4 w-4" /> },
   ],
 };
 

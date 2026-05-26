@@ -39,6 +39,7 @@ class DiaEnum(str, enum.Enum):
     MIE = "MIE"
     JUE = "JUE"
     VIE = "VIE"
+    SAB = "SAB"
 
 
 class TurnoEnum(str, enum.Enum):

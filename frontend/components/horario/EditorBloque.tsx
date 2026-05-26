@@ -69,6 +69,10 @@ export function EditorBloque({
   const [validating,  setValidating]  = useState(false);
   const [validResult, setValidResult] = useState<ValidarResponse | null>(null);
 
+  // Slots válidos (día:hora → aula_ids[])
+  const [slotsValidos, setSlotsValidos] = useState<Record<string, number[]> | null>(null);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
   // Estado de guardado / eliminación
   const [saving,   setSaving]   = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -93,6 +97,34 @@ export function EditorBloque({
       .catch(() => {})
       .finally(() => setLoadingAulas(false));
   }, [session?.user?.access_token]);
+
+  // ── Carga slots válidos al entrar en modo mover ─────────────────────────────
+  useEffect(() => {
+    if (mode !== "mover" || !session?.user?.access_token) return;
+    setSlotsValidos(null);
+    setLoadingSlots(true);
+    fetch(`${API}/api/horario/bloques/${bloque.id}/slots-validos`, {
+      headers: { Authorization: `Bearer ${session.user.access_token}` },
+    })
+      .then(r => r.json())
+      .then(data => setSlotsValidos(data.slots))
+      .catch(() => {})
+      .finally(() => setLoadingSlots(false));
+  }, [mode, session?.user?.access_token, bloque.id]);
+
+  // ── Ajusta la selección inicial cuando cargan los slots ─────────────────────
+  // Solo actualiza el aula si la seleccionada ya no está en el slot actual;
+  // no fuerza cambio de día para que el usuario pueda seleccionar sábado libremente.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!slotsValidos) return;
+    const horaNum = parseInt(movHora);
+    const ids = slotsValidos[`${movDia}:${String(horaNum).padStart(2, "0")}`] ?? [];
+    if (ids.length > 0 && !ids.includes(parseInt(movAulaId))) {
+      setMovAulaId(String(ids[0]));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slotsValidos]);
 
   // ── Validación en vivo (debounced) ──────────────────────────────────────────
   const doValidate = useCallback(async () => {
@@ -171,7 +203,21 @@ export function EditorBloque({
     }
   };
 
-  const resetToInfo = () => { setMode("info"); setValidResult(null); };
+  const resetToInfo = () => { setMode("info"); setValidResult(null); setSlotsValidos(null); };
+
+  // ── Opciones filtradas por slots válidos ────────────────────────────────────
+  const slotKey = `${movDia}:${movHora.slice(0, 2)}`;
+  const aulaIdsValidos = new Set(slotsValidos ? (slotsValidos[slotKey] ?? []) : aulas.map(a => a.id));
+  // Siempre mostramos todos los días — el usuario ve sábado y la validación muestra el error exacto
+  const diasDisponibles = DIAS;
+  // Para las horas: si el día no tiene slots válidos mostramos todas (fallback al selector completo)
+  const horasDelDia = slotsValidos
+    ? TODAS_HORAS.filter(h => (slotsValidos[`${movDia}:${String(h).padStart(2, "0")}`] ?? []).length > 0)
+    : TODAS_HORAS;
+  const horasDisponibles = horasDelDia.length > 0 ? horasDelDia : TODAS_HORAS;
+  const aulasDisponibles = aulas.filter(a => aulaIdsValidos.has(a.id));
+  const sinSlotsLibres = slotsValidos !== null && !loadingSlots &&
+    !Object.values(slotsValidos).some(ids => ids.length > 0);
 
   // ── Renderizado ─────────────────────────────────────────────────────────────
   return (
@@ -271,14 +317,44 @@ export function EditorBloque({
                 <span className="text-sm font-semibold">Mover bloque</span>
               </div>
 
+              {/* Cargando slots válidos */}
+              {loadingSlots && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Calculando slots disponibles…
+                </div>
+              )}
+
+              {/* Sin slots disponibles */}
+              {sinSlotsLibres && (
+                <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-700">
+                  No hay ningún slot disponible para este bloque sin generar conflictos.
+                </div>
+              )}
+
               {/* Selector de día */}
+              {!loadingSlots && !sinSlotsLibres && (
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Día</label>
                 <div className="flex gap-1.5 flex-wrap">
-                  {DIAS.map(d => (
+                  {diasDisponibles.map(d => (
                     <button
                       key={d}
-                      onClick={() => setMovDia(d)}
+                      onClick={() => {
+                        setMovDia(d);
+                        const horas = TODAS_HORAS.filter(h =>
+                          (slotsValidos?.[`${d}:${String(h).padStart(2, "0")}`] ?? []).length > 0
+                        );
+                        if (horas.length > 0) {
+                          const horaNum = parseInt(movHora);
+                          const horaUsada = horas.includes(horaNum) ? horaNum : horas[0];
+                          const hStr = String(horaUsada).padStart(2, "0") + ":00";
+                          setMovHora(hStr);
+                          const ids = slotsValidos?.[`${d}:${String(horaUsada).padStart(2, "0")}`] ?? [];
+                          if (ids.length > 0 && !ids.includes(parseInt(movAulaId)))
+                            setMovAulaId(String(ids[0]));
+                        }
+                      }}
                       className={[
                         "px-3 py-1 rounded text-xs font-medium border transition-colors",
                         movDia === d
@@ -291,18 +367,26 @@ export function EditorBloque({
                   ))}
                 </div>
               </div>
+              )}
 
               {/* Selector de hora */}
+              {!loadingSlots && !sinSlotsLibres && (
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Hora de inicio</label>
                 <div className="grid grid-cols-6 gap-1">
-                  {TODAS_HORAS.map(h => {
+                  {horasDisponibles.map((h, i) => {
                     const hStr = String(h).padStart(2, "0") + ":00";
-                    const isSep = h === 14;
+                    const prevH = horasDisponibles[i - 1];
+                    const isSep = h >= 14 && (i === 0 || (prevH !== undefined && prevH < 14));
                     return (
                       <button
                         key={h}
-                        onClick={() => setMovHora(hStr)}
+                        onClick={() => {
+                          setMovHora(hStr);
+                          const ids = slotsValidos?.[`${movDia}:${String(h).padStart(2, "0")}`] ?? [];
+                          if (ids.length > 0 && !ids.includes(parseInt(movAulaId)))
+                            setMovAulaId(String(ids[0]));
+                        }}
                         className={[
                           "py-1 rounded text-xs font-mono border transition-colors",
                           isSep ? "col-start-1" : "",
@@ -318,8 +402,10 @@ export function EditorBloque({
                 </div>
                 <p className="text-xs text-muted-foreground italic">7-12h mañana · 14-19h tarde</p>
               </div>
+              )}
 
               {/* Selector de aula */}
+              {!loadingSlots && !sinSlotsLibres && (
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Aula</label>
                 {loadingAulas ? (
@@ -327,13 +413,15 @@ export function EditorBloque({
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Cargando aulas...
                   </div>
+                ) : aulasDisponibles.length === 0 ? (
+                  <p className="text-xs text-amber-600">No hay aulas disponibles para este slot.</p>
                 ) : (
                   <select
                     value={movAulaId}
                     onChange={e => setMovAulaId(e.target.value)}
                     className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   >
-                    {aulas.map(a => (
+                    {aulasDisponibles.map(a => (
                       <option key={a.id} value={String(a.id)}>
                         {a.codigo} — {a.tipo} (cap. {a.capacidad})
                       </option>
@@ -341,6 +429,7 @@ export function EditorBloque({
                   </select>
                 )}
               </div>
+              )}
 
               {/* Resultado de validación */}
               {validating && (
@@ -390,7 +479,7 @@ export function EditorBloque({
                 <Button
                   size="sm"
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-                  disabled={!validResult?.valido || saving || validating || loadingAulas}
+                  disabled={!validResult?.valido || saving || validating || loadingAulas || loadingSlots || sinSlotsLibres}
                   onClick={handleConfirmMove}
                 >
                   {saving

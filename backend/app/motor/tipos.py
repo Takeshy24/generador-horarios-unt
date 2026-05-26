@@ -9,7 +9,7 @@ from typing import Optional
 
 # ── Constantes de slots ─────────────────────────────────────────────────────
 
-DIAS = ["LUN", "MAR", "MIE", "JUE", "VIE"]
+DIAS = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB"]
 MANANA_STARTS = list(range(7, 13))    # [7, 8, 9, 10, 11, 12]
 TARDE_STARTS  = list(range(14, 20))   # [14, 15, 16, 17, 18, 19]
 ALL_STARTS    = MANANA_STARTS + TARDE_STARTS

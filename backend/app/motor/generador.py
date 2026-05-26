@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 def _candidatos_para_n_horas(n: int) -> list[tuple[str, int]]:
     """
     Genera todos los (dia, hora_inicio) válidos para un bloque de n horas consecutivas.
-    Orden: lunes→viernes, mañana (7-12) antes que tarde (14-19).
+    Orden: lunes→sábado, mañana (7-12) antes que tarde (14-19).
     """
     candidatos = []
     for dia in DIAS:

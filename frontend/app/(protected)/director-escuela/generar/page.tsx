@@ -351,6 +351,7 @@ export default function GenerarHorarioPage() {
   const [showPublicarModal, setShowPublicarModal] = useState(false);
   const [loadingPublicar,   setLoadingPublicar]   = useState(false);
   const [downloadingPdf,    setDownloadingPdf]    = useState(false);
+  const [downloadingXlsx,   setDownloadingXlsx]   = useState(false);
 
   // Banner de pendientes
   const [pendientes,       setPendientes]       = useState<Pendiente[]>([]);
@@ -517,6 +518,36 @@ export default function GenerarHorarioPage() {
       setError(`Error al descargar PDF: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setDownloadingPdf(false);
+    }
+  };
+
+  const handleDescargarExcel = async (tipo: "ciclo" | "completo", cicloNum?: number) => {
+    if (!session?.user?.access_token || !semestre) return;
+    setDownloadingXlsx(true);
+    const base = `${API}/api/horario/excel`;
+    const url = tipo === "ciclo"
+      ? `${base}/ciclo/${cicloNum}?semestre_id=${semestre.id}`
+      : `${base}/completo?semestre_id=${semestre.id}`;
+    const filename = tipo === "ciclo"
+      ? `horario_ciclo${cicloNum}_${semestre.codigo}.xlsx`
+      : `horario_completo_${semestre.codigo}.xlsx`;
+    try {
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${session.user.access_token}` },
+      });
+      if (!res.ok) throw new Error(`${res.status}: ${await res.text()}`);
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+    } catch (e) {
+      setError(`Error al descargar Excel: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setDownloadingXlsx(false);
     }
   };
 
@@ -721,6 +752,28 @@ export default function GenerarHorarioPage() {
           >
             {downloadingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
             PDF Completo
+          </Button>
+
+          {/* Descarga Excel */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleDescargarExcel("ciclo", cicloActivo)}
+            disabled={downloadingXlsx}
+            className="flex items-center gap-1.5 text-green-700 border-green-300 hover:bg-green-50"
+          >
+            {downloadingXlsx ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            Excel Ciclo {CICLO_ROMANO[cicloActivo]}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleDescargarExcel("completo")}
+            disabled={downloadingXlsx}
+            className="flex items-center gap-1.5 text-green-700 border-green-300 hover:bg-green-50"
+          >
+            {downloadingXlsx ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+            Excel Completo
           </Button>
 
           <Button
