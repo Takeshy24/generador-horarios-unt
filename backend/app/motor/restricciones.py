@@ -84,7 +84,8 @@ def r2_aula_no_doble_clase(
 
 
 # ── R3: Alumnos del mismo ciclo no pueden tener 2 componentes simultáneos ─────
-#        Excepción: labs paralelos de distintos grupos del mismo curso
+#        Excepción explícita: dos laboratorios (L) del mismo ciclo en paralelo,
+#        siempre y cuando estén en aulas distintas (R2 ya se encarga de esto)
 
 def r3_ciclo_no_doble_componente(
     comp: ComponenteDomain,
@@ -103,7 +104,9 @@ def r3_ciclo_no_doble_componente(
         if not (propuestas & _horas_del_slot(slot)):
             continue
 
-        # Excepción: ambos componentes son laboratorios (L), no importa la sección
+        # EXCEPCIÓN EXPLÍCITA:
+        # Si ambos componentes son laboratorios (L), permite la superposición
+        # R2 ya se encarga de verificar que no estén en la MISMA aula
         if (
             comp.tipo_componente == "L"
             and otro.tipo_componente == "L"

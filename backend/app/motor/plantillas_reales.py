@@ -13,6 +13,7 @@ from dataclasses import dataclass
 class BloqueReferencial:
     ciclo: int
     curso_codigo: str
+    numero_en_pdf: int
     dia: str
     hora_inicio: int
     duracion: int
@@ -305,6 +306,7 @@ HORARIO_REFERENCIAL_2026_I: tuple[BloqueReferencial, ...] = tuple(
     BloqueReferencial(
         ciclo=ciclo,
         curso_codigo=CURSOS_POR_NUMERO[ciclo][numero],
+        numero_en_pdf=numero,
         dia=dia,
         hora_inicio=hora,
         duracion=1,

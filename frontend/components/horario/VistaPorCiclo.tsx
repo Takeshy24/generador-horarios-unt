@@ -28,6 +28,19 @@ function checkAlmuerzo(bloques: BloqueAPI[], dia: string): "none" | "ok" | "warn
   return violation ? "warning" : "ok";
 }
 
+// ── Helper: detectar grupos paralelos (choques permitidos) ───────────────────────
+
+function esGrupoParalelo(bloqueA: BloqueAPI, bloqueB: BloqueAPI): boolean {
+  if (bloqueA.dia === bloqueB.dia &&
+      bloqueA.hora_inicio === bloqueB.hora_inicio &&
+      bloqueA.hora_fin === bloqueB.hora_fin &&
+      bloqueA.componente.tipo === "L" &&
+      bloqueB.componente.tipo === "L") {
+    return true;
+  }
+  return false;
+}
+
 // ── Celda de bloque ───────────────────────────────────────────────────────────
 
 function BlockCell({ bloque, onClick }: { bloque: BloqueAPI; onClick: () => void }) {

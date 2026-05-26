@@ -29,7 +29,7 @@ from app.models.enums import (
     RoleEnum, TipoDocenteEnum, RegimenEnum, CategoriaEnum,
     DiaEnum, TurnoEnum, TipoAulaEnum, EstadoSemestreEnum, TipoComponenteEnum,
 )
-from app.motor.plantillas_reales import HORARIO_REFERENCIAL_2026_I
+from app.motor.plantillas_reales import HORARIO_REFERENCIAL_2026_I, CURSOS_POR_NUMERO
 from app.motor.tipos import tipo_aula_compatible
 
 
@@ -656,6 +656,24 @@ async def seed() -> None:
             **asig_1, **asig_3, **asig_5, **asig_7, **asig_9,
         }
 
+        # Mapa de asignaciones por (ciclo, número_en_pdf) para cursos con múltiples grupos
+        asignaciones_por_numero = {
+            (1, 1): d_torres,
+            (1, 3): d_cotrina,
+            (1, 8): d_ipanaque,
+            (1, 9): d_cardoso,
+            (7, 1): d_santos_fz,
+            (7, 3): d_sanchez,
+            (9, 1): d_santos_fz,
+            (9, 2): d_mendoza_rv,
+        }
+
+        # Mapa inverso: curso_codigo -> lista de números_en_pdf por ciclo
+        numeros_por_curso: dict[str, list[tuple[int, int]]] = {}
+        for ciclo, num_dict in CURSOS_POR_NUMERO.items():
+            for num, cod_curso in num_dict.items():
+                numeros_por_curso.setdefault(cod_curso, []).append((ciclo, num))
+
         # Para ciclos sin datos reales del horario (II, IV, VI, VIII, X)
         # se hace asignación automática respetando topes.
         _TOPES = {
@@ -713,6 +731,7 @@ async def seed() -> None:
             return d
 
         componentes_por_curso: dict[str, list[ComponenteAProgramar]] = {}
+        componentes_por_numero: dict[tuple[int, int], ComponenteAProgramar] = {}
 
         for cod, curso in cursos.items():
             if curso.ciclo % 2 == 0:
@@ -757,6 +776,10 @@ async def seed() -> None:
                 )
                 session.add(comp_t)
                 componentes_por_curso.setdefault(cod, []).append(comp_t)
+                # Asociar componentes T/P con el primer número_en_pdf del curso
+                nums_curso = [num for (cic, num) in numeros_por_curso.get(cod, []) if cic == ciclo]
+                if nums_curso:
+                    componentes_por_numero[(ciclo, nums_curso[0])] = comp_t
 
             # Componente P
             if curso.horas_P > 0:
@@ -770,17 +793,31 @@ async def seed() -> None:
                 session.add(comp_p)
                 componentes_por_curso.setdefault(cod, []).append(comp_p)
 
-            # Componentes L (uno por grupo)
-            for grupo in grupos:
+            # Componentes L (uno por grupo, con docentes diferentes si corresponde)
+            # Obtenemos la lista de números_en_pdf para este curso y ciclo
+            nums_curso = [num for (cic, num) in numeros_por_curso.get(cod, []) if cic == ciclo]
+
+            for idx, grupo in enumerate(grupos):
+                # Buscamos docente específico por (ciclo, número) si existe
+                docente_grupo = docente_asignado
+                num_pdf_actual = None
+                if idx < len(nums_curso):
+                    num_pdf_actual = nums_curso[idx]
+                    key = (ciclo, num_pdf_actual)
+                    if key in asignaciones_por_numero:
+                        docente_grupo = asignaciones_por_numero[key]
+
                 comp_l = ComponenteAProgramar(
                     seccion=seccion,
                     tipo=TipoComponenteEnum.L,
-                    docente=docente_asignado,
+                    docente=docente_grupo,
                     horas_semanales=curso.horas_L,
                     grupo_lab=grupo,
                 )
                 session.add(comp_l)
                 componentes_por_curso.setdefault(cod, []).append(comp_l)
+                if num_pdf_actual is not None:
+                    componentes_por_numero[(ciclo, num_pdf_actual)] = comp_l
 
         await session.flush()
 
@@ -832,6 +869,20 @@ async def seed() -> None:
             prioridad = ["L"] if aula_tipo.startswith("lab_") else ["T", "P", "L"]
             if ref.tipo_preferido:
                 prioridad = [ref.tipo_preferido] + [p for p in prioridad if p != ref.tipo_preferido]
+
+            # Primero intentamos obtener el componente EXACTO según (ciclo, numero_en_pdf)
+            key = (ref.ciclo, ref.numero_en_pdf)
+            if key in componentes_por_numero:
+                comp = componentes_por_numero[key]
+                if horas_colocadas.get(comp.id, 0) + ref.duracion <= comp.horas_semanales:
+                    if comp.tipo in (TipoComponenteEnum.T, TipoComponenteEnum.P):
+                        if aula.tipo == TipoAulaEnum.comun:
+                            return comp
+                    else:
+                        curso = cursos.get(ref.curso_codigo)
+                        tipo_req = curso.tipo_lab_requerido if curso else None
+                        if tipo_aula_compatible(tipo_req or "lab_computo", aula_tipo):
+                            return comp
 
             curso = cursos.get(ref.curso_codigo)
             candidatos: list[ComponenteAProgramar] = []
