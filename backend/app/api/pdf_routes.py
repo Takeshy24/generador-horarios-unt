@@ -42,7 +42,7 @@ _GRID_H = _GRID_TOP - _GRID_BOT
 
 _HDR_ROW = 21.0
 _BODY_H = _GRID_H - _HDR_ROW
-_ROW_H = _BODY_H / 12
+_ROW_H = _BODY_H / 14
 
 # ── Layout carga docente (A4 portrait = 595.28 × 841.89 pt) ──────────────────
 _PW, _PH = A4
@@ -52,7 +52,7 @@ DIA_LABELS = {
     "LUN": "Lunes", "MAR": "Martes", "MIE": "Miércoles",
     "JUE": "Jueves", "VIE": "Viernes", "SAB": "Sábado",
 }
-HORAS = [7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19]
+HORAS = list(range(7, 21))
 CICLO_ROMANO = {
     1: "I", 2: "II", 3: "III", 4: "IV", 5: "V",
     6: "VI", 7: "VII", 8: "VIII", 9: "IX", 10: "X",

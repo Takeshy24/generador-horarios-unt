@@ -10,9 +10,27 @@ from typing import Optional
 # ── Constantes de slots ─────────────────────────────────────────────────────
 
 DIAS = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB"]
-MANANA_STARTS = list(range(7, 13))    # [7, 8, 9, 10, 11, 12]
-TARDE_STARTS  = list(range(14, 20))   # [14, 15, 16, 17, 18, 19]
-ALL_STARTS    = MANANA_STARTS + TARDE_STARTS
+
+# La grilla real del horario 2026-I usa una jornada continua:
+# 7-8, 8-9, ..., 12-1, 1-2, ..., 8-9 p.m.
+HORA_INICIO_JORNADA = 7
+HORA_FIN_JORNADA = 20
+ALL_STARTS = list(range(HORA_INICIO_JORNADA, HORA_FIN_JORNADA + 1))
+
+# Alias conservados para compatibilidad con vistas/reportes existentes.
+MANANA_STARTS = list(range(7, 14))     # [7, 8, 9, 10, 11, 12, 13]
+TARDE_STARTS = list(range(14, 21))     # [14, 15, 16, 17, 18, 19, 20]
+
+LAB_AULAS_GENERICAS = {"lab_computo"}
+
+
+def tipo_aula_compatible(tipo_requerido: str, tipo_aula: str) -> bool:
+    """Compatibilidad realista: los labs genericos pueden cubrir labs especializados."""
+    if tipo_requerido == tipo_aula:
+        return True
+    if tipo_requerido.startswith("lab_") and tipo_aula in LAB_AULAS_GENERICAS:
+        return True
+    return False
 
 # Tope CHL por régimen (Art. 12 Reglamento UNT)
 TOPES_REGIMEN: dict[str, int] = {
@@ -97,6 +115,8 @@ class ComponenteDomain:
     num_alumnos: int
     tipo_aula_requerido: str  # 'comun' para T/P, 'lab_X' para L
     seccion_letra: str = ""
+    curso_codigo: str = ""
+    grupo_lab_numero: int | None = None
 
 
 # ── Dataclasses de salida ─────────────────────────────────────────────────────

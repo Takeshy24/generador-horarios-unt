@@ -30,8 +30,8 @@ export const DIAS_LABELS: Record<string, string> = {
   LUN: "Lunes", MAR: "Martes", MIE: "Miércoles", JUE: "Jueves", VIE: "Viernes", SAB: "Sábado",
 };
 
-export const HORAS_MANANA = [7, 8, 9, 10, 11, 12];
-export const HORAS_TARDE  = [14, 15, 16, 17, 18, 19];
+export const HORAS_MANANA = [7, 8, 9, 10, 11, 12, 13];
+export const HORAS_TARDE  = [14, 15, 16, 17, 18, 19, 20];
 export const TODAS_HORAS  = [...HORAS_MANANA, ...HORAS_TARDE];
 
 export const CICLO_ROMANO: Record<number, string> = {

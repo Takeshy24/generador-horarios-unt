@@ -39,12 +39,17 @@ from app.motor.restricciones import verificar_todas, Violacion
 from app.motor.tipos import (
     ComponenteDomain, SlotAsignado, AulaDomain, DocenteDomain,
     DisponibilidadSlot, TOPES_REGIMEN, REDUCCION_POR_CARGO, hora_fin_bloque,
+    ALL_STARTS,
 )
 
 router = APIRouter(prefix="/horario", tags=["horario"])
 logger = logging.getLogger(__name__)
 
 _HOY = date_type(2026, 5, 17)  # fecha de referencia fija (igual que orquestador)
+
+
+def _duracion_horas(inicio: time, fin: time) -> int:
+    return fin.hour - inicio.hour + 1
 
 
 # ── Dependencias de autorización ──────────────────────────────────────────────
@@ -243,6 +248,7 @@ async def _cargar_estado_para_validacion(
                 num_alumnos=sec.num_alumnos,
                 tipo_aula_requerido=tipo_aula_req,
                 seccion_letra=sec.letra,
+                curso_codigo=curso.codigo,
             )
 
     return estado, componentes_map
@@ -293,10 +299,11 @@ async def _validar_movimiento_logic(
         ciclo=curso.ciclo,
         tipo_componente=comp.tipo.value,
         docente_id=comp.docente_id,
-        horas_semanales=comp.horas_semanales,
+        horas_semanales=_duracion_horas(bloque.hora_inicio, bloque.hora_fin),
         num_alumnos=sec.num_alumnos,
         tipo_aula_requerido=tipo_aula_req,
         seccion_letra=sec.letra,
+        curso_codigo=curso.codigo,
     )
 
     # Construir DocenteDomain si hay docente
@@ -505,13 +512,17 @@ async def get_pendientes(
     Devuelve los ComponenteAProgramar del semestre que NO tienen HorarioBloque asignado.
     Se usan para el banner de 'componentes pendientes'.
     """
-    # IDs de componentes que YA tienen bloques en este semestre
+    # Horas colocadas por componente. Un componente puede tener varios bloques.
     bloques_res = await db.execute(
-        select(HorarioBloque.componente_id)
+        select(HorarioBloque)
         .where(HorarioBloque.semestre_id == semestre_id)
-        .distinct()
     )
-    ids_colocados = {row[0] for row in bloques_res.all()}
+    horas_colocadas: dict[int, int] = {}
+    for bloque in bloques_res.scalars().all():
+        horas_colocadas[bloque.componente_id] = (
+            horas_colocadas.get(bloque.componente_id, 0)
+            + _duracion_horas(bloque.hora_inicio, bloque.hora_fin)
+        )
 
     # Todos los componentes del semestre
     comps_res = await db.execute(
@@ -525,7 +536,7 @@ async def get_pendientes(
 
     pendientes = []
     for comp, sec, curso in rows:
-        if comp.id not in ids_colocados:
+        if horas_colocadas.get(comp.id, 0) < comp.horas_semanales:
             docente_nombre = ""
             if comp.docente_id:
                 doc_res = await db.execute(
@@ -541,6 +552,8 @@ async def get_pendientes(
                 "tipo": comp.tipo.value,
                 "seccion_letra": sec.letra,
                 "docente_nombre": docente_nombre,
+                "horas_colocadas": horas_colocadas.get(comp.id, 0),
+                "horas_esperadas": comp.horas_semanales,
             })
 
     return {"semestre_id": semestre_id, "total": len(pendientes), "pendientes": pendientes}
@@ -591,10 +604,11 @@ async def slots_validos_bloque(
         ciclo=curso.ciclo,
         tipo_componente=comp.tipo.value,
         docente_id=comp.docente_id,
-        horas_semanales=comp.horas_semanales,
+        horas_semanales=_duracion_horas(bloque.hora_inicio, bloque.hora_fin),
         num_alumnos=sec.num_alumnos,
         tipo_aula_requerido=tipo_aula_req,
         seccion_letra=sec.letra,
+        curso_codigo=curso.codigo,
     )
 
     docente_domain: Optional[DocenteDomain] = None
@@ -635,7 +649,7 @@ async def slots_validos_bloque(
     ]
 
     _DIAS  = ["LUN", "MAR", "MIE", "JUE", "VIE", "SAB"]
-    _HORAS = [7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19]
+    _HORAS = ALL_STARTS
 
     # Verificar todas las combinaciones en Python puro (sin más accesos a DB)
     slots: dict[str, list[int]] = {}
@@ -728,9 +742,10 @@ async def mover_bloque(
     except (ValueError, IndexError):
         raise HTTPException(status_code=422, detail="Formato de hora inválido")
 
+    duracion = _duracion_horas(bloque.hora_inicio, bloque.hora_fin)
     bloque.dia = DiaEnum(req.dia.upper())
     bloque.hora_inicio = time(start_h, 0)
-    bloque.hora_fin = hora_fin_bloque(start_h, bloque.componente.horas_semanales)
+    bloque.hora_fin = hora_fin_bloque(start_h, duracion)
     bloque.aula_id = req.aula_id
 
     await db.commit()
