@@ -255,7 +255,7 @@ export default function MiHorarioPage() {
                     if (cell.kind === "empty") {
                       return <td key={dia} className="border border-gray-200 h-10" />;
                     }
-                    const b = cell.bloque;
+                    const b = cell.bloques[0];
                     const style = courseStyle(b.componente.seccion.curso.id);
                     return (
                       <td
